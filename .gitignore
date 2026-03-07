@@ -1,0 +1,19 @@
+# Environments
+.env
+
+# Python
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Scikit-learn models (optional, but they are large)
+# backend/delay_model.pkl
+
+# IDEs
+.vscode/
+.idea/
+*.code-workspace
