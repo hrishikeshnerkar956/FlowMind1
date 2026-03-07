@@ -11,7 +11,8 @@ const Dashboard = () => {
 
     useEffect(() => {
         // Connect to FastAPI WebSocket
-        const ws = new WebSocket("ws://localhost:8000/ws/frontend");
+        const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8000/ws/frontend";
+        const ws = new WebSocket(wsUrl);
 
         ws.onopen = () => setIsConnected(true);
         ws.onclose = () => setIsConnected(false);
