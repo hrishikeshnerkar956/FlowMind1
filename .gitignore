@@ -17,3 +17,4 @@ frontend/dist/
 .vscode/
 .idea/
 *.code-workspace
+flowmind.db 

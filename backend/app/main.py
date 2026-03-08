@@ -1,26 +1,20 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import pickle
 import os
+from contextlib import asynccontextmanager
+from sqlmodel import Session, select
 from app.agent.graph import app as agent_app, HAS_GEMINI
+from app.core.database import create_db_and_tables, engine, get_session
+from app.models.schema import TelemetryLog
 
-# Load Scikit-learn model
-# Resolve path relative to this file
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "delay_model.pkl")
-try:
-    with open(MODEL_PATH, "rb") as f:
-        delay_model = pickle.load(f)
-    print("Scikit-learn model loaded successfully.")
-except FileNotFoundError:
-    print(f"WARNING: {MODEL_PATH} not found. Run scripts/train_model.py first.")
-    delay_model = None
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
 
-# Mappings for ML Features
-WEATHER_MAP = {"Clear": 0, "Rain": 1, "Snow": 2, "Storm": 3}
-TRAFFIC_MAP = {"Low": 0, "Moderate": 1, "Heavy": 2, "Gridlock": 3}
-
-app = FastAPI(title="FlowMind Backend")
+app = FastAPI(title="FlowMind Backend", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -129,6 +123,20 @@ def flowmind_agentic_loop(telemetry_data: dict) -> dict:
         }
     }
     
+    # 5. Learn (Log to DB)
+    with Session(engine) as session:
+        log_entry = TelemetryLog(
+            truck_id=truck.get('truck_id', 'UNKNOWN'),
+            destination=truck.get('destination', 'UNKNOWN'),
+            risk_score=risk_score,
+            ai_prediction=delay_prediction,
+            ai_reasoning=reasoning,
+            ai_directive=directive,
+            human_approved=False
+        )
+        session.add(log_entry)
+        session.commit()
+    
     return response
 
 @app.websocket("/ws/telemetry")
@@ -158,11 +166,22 @@ async def websocket_frontend_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             message = json.loads(data)
             if message.get("type") == "human_approval":
-                print(f"Human approved action for truck {message.get('truck_id')}")
-                # We could broadcast the decision back or store it.
+                truck_id = message.get('truck_id')
+                print(f"Human approved action for truck {truck_id}")
+                
+                # Update DB
+                with Session(engine) as session:
+                    stmt = select(TelemetryLog).where(TelemetryLog.truck_id == truck_id).order_by(TelemetryLog.id.desc())
+                    latest_log = session.exec(stmt).first()
+                    if latest_log:
+                        latest_log.human_approved = True
+                        session.add(latest_log)
+                        session.commit()
+                        
+                # Broadcast the decision back
                 await manager.broadcast({
                     "system_update": True,
-                    "message": f"Action approved for {message.get('truck_id')}"
+                    "message": f"Action approved for {truck_id}"
                 })
     except WebSocketDisconnect:
         manager.disconnect(websocket)
