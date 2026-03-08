@@ -9,6 +9,21 @@ from app.agent.graph import app as agent_app, HAS_GEMINI
 from app.core.database import create_db_and_tables, engine, get_session
 from app.models.schema import TelemetryLog
 
+# Load Scikit-learn model
+# Resolve path relative to this file
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "delay_model.pkl")
+try:
+    with open(MODEL_PATH, "rb") as f:
+        delay_model = pickle.load(f)
+    print("Scikit-learn model loaded successfully.")
+except FileNotFoundError:
+    print(f"WARNING: {MODEL_PATH} not found. Run scripts/train_model.py first.")
+    delay_model = None
+
+# Mappings for ML Features
+WEATHER_MAP = {"Clear": 0, "Rain": 1, "Snow": 2, "Storm": 3}
+TRAFFIC_MAP = {"Low": 0, "Moderate": 1, "Heavy": 2, "Gridlock": 3}
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
