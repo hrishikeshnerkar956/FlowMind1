@@ -2,15 +2,18 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import pickle
-from agent.graph import app as agent_app, HAS_GEMINI
+import os
+from app.agent.graph import app as agent_app, HAS_GEMINI
 
 # Load Scikit-learn model
+# Resolve path relative to this file
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "models", "delay_model.pkl")
 try:
-    with open("delay_model.pkl", "rb") as f:
+    with open(MODEL_PATH, "rb") as f:
         delay_model = pickle.load(f)
     print("Scikit-learn model loaded successfully.")
 except FileNotFoundError:
-    print("WARNING: delay_model.pkl not found. Run train_model.py first.")
+    print(f"WARNING: {MODEL_PATH} not found. Run scripts/train_model.py first.")
     delay_model = None
 
 # Mappings for ML Features
@@ -170,4 +173,4 @@ def read_root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

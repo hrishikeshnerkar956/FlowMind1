@@ -27,7 +27,7 @@ GEMINI_API_KEY=your_key_here
 ```
 Run the FastApi server:
 ```bash
-python main.py
+python -m app.main
 ```
 
 ### 2. The Simulation Engine
@@ -35,7 +35,7 @@ In a new terminal, while the backend is running:
 ```bash
 cd backend
 venv\Scripts\activate
-python simulator.py
+python -m app.simulation.simulator
 ```
 
 ### 3. The Frontend App

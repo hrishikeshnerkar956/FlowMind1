@@ -37,10 +37,13 @@ def train():
     model = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
     model.fit(X, y)
     
-    with open("delay_model.pkl", "wb") as f:
+    import os
+    model_path = os.path.join(os.path.dirname(__file__), "..", "models", "delay_model.pkl")
+    
+    with open(model_path, "wb") as f:
         pickle.dump(model, f)
         
-    print("Model trained and saved to delay_model.pkl")
+    print(f"Model trained and saved to {model_path}")
 
 if __name__ == "__main__":
     train()

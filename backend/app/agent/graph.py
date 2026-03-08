@@ -10,7 +10,7 @@ try:
 except ImportError:
     HAS_GEMINI = False
 
-from agent.state import AgentState, AIAnalysis
+from app.agent.state import AgentState, AIAnalysis
 
 def get_llm():
     if not HAS_GEMINI:
